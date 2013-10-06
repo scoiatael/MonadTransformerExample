@@ -1,0 +1,17 @@
+module TransformerExampleInstances where
+
+import TransformerExampleImplementations
+import TransformerExampleDefinitions
+
+instance MonadT StateT where
+  lift m = StateT $ \s -> do
+    a <- m
+    return (s,a)
+
+instance MonadT EnvT where
+  lift m = EnvT $ \_ -> m
+
+instance MonadT ErrorT where
+  lift m = ErrorT $ do
+    a <- m
+    return $ Right a
