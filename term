@@ -1,1 +1,0 @@
-Let "x" (Const False) (And (Appl "f" (Const True)) (Var "x"))
