@@ -8,6 +8,11 @@ type Variable = String
 type Value = Bool
 type Function = String
 
+maybeTerm :: String -> Maybe Term
+maybeTerm s = case reads s of
+  [(x,_)] -> Just x
+  _        -> Nothing
+
 data Term = And Term Term | Or Term Term 
   | Var Variable | Not Term 
   | Let Variable Term Term | Const Value
@@ -15,13 +20,21 @@ data Term = And Term Term | Or Term Term
 
 data Func = Func Function Variable Term  deriving (Show, Read, Ord, Eq)
 
-maybeTerm :: String -> Maybe Term
-maybeTerm s = case reads s of
-  [(x,_)] -> Just x
-  _        -> Nothing
-
 class (MonadState m, MonadEnv m, MonadError m) => InterpMonad m where
   start :: (Show a, InterpMonad m) => m a -> String
+
+class Monad m => MonadState m where
+  modState :: (State -> State) -> m State
+  putVar :: Variable -> Term -> m ()
+  getVar :: Variable -> m (Maybe Term)
+
+class Monad m => MonadEnv m where
+  parseEnv :: String -> m (Maybe Env)
+  inEnv :: Env -> m a -> m a
+  lookupEnv :: Function -> m (Maybe Func)
+
+class Monad m => MonadError m where
+  err :: Error -> m a
 
 interp :: InterpMonad m => Term -> m Value
 interp x = case x of
@@ -71,10 +84,6 @@ putState v t s = case lookup v s of
   Nothing -> insert (v,t) s 
   Just t' -> insert (v,t) $ delete (v,t') s
 
-class Monad m => MonadState m where
-  modState :: (State -> State) -> m State
-  putVar :: Variable -> Term -> m ()
-  getVar :: Variable -> m (Maybe Term)
 
 type Env = [(Function, Func)]
 basicEnv :: Env
@@ -89,11 +98,6 @@ strToEnv s = (fromMaybeList $ map maybeReadFunc $ lines s) >>= (Just . map (\x@(
     [(x,"")] -> Just x
     _      -> Nothing
 
-class Monad m => MonadEnv m where
-  parseEnv :: String -> m (Maybe Env)
-  inEnv :: Env -> m a -> m a
-  lookupEnv :: Function -> m (Maybe Func)
-
 myParse :: String -> String
 myParse = head . filter (\(x:_) -> x /= '#') . lines
 
@@ -101,5 +105,3 @@ myParse = head . filter (\(x:_) -> x /= '#') . lines
 
 type Error = String
 
-class Monad m => MonadError m where
-  err :: Error -> m a

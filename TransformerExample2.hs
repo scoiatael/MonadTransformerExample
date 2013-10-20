@@ -34,12 +34,7 @@ instance MonadState OurMonad where
   getVar v = liftFromState $ getVar v
 
 instance MonadEnv OurMonad where
--- !! Curious case !! --
-  inEnv e f = do
-    a <- liftFromEnv $ inEnv e $ runErrorT $ runO f 
-    case a of
-      Left e -> err e
-      Right a -> return a
+  inEnv e f = liftFromErr $ ErrorT $ inEnv e $ runErrorT $ runO f 
   parseEnv s = liftFromEnv $ parseEnv s
   lookupEnv f = liftFromEnv $ lookupEnv f
  
@@ -47,5 +42,5 @@ discardState = snd
 
 instance InterpMonad OurMonad where
   start o = case runId $ runStateT (runEnvT (runErrorT $ runO o) basicEnv) basicState of
-    (s, Left err) -> "Error: " ++ err ++ "\n in state: \n" ++ s ++ "--\n"
+    (s, Left err) -> "Error: " ++ err ++ "\n in state: \n" ++ show s ++ "--\n"
     (_,Right a) -> show a
